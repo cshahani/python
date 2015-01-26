@@ -1,0 +1,1976 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1343\cocoasubrtf160
+{\fonttbl\f0\fnil\fcharset0 HelveticaNeue-Light;\f1\froman\fcharset0 Times-Roman;\f2\fnil\fcharset0 HelveticaNeue;
+\f3\fnil\fcharset0 Menlo-Regular;\f4\fnil\fcharset0 Menlo-Bold;\f5\fnil\fcharset0 Menlo-Italic;
+}
+{\colortbl;\red255\green255\blue255;\red38\green38\blue38;\red184\green14\blue61;\red247\green238\blue241;
+\red83\green83\blue83;\red242\green242\blue242;\red15\green112\blue1;\red0\green0\blue255;\red158\green0\blue49;
+\red169\green14\blue26;\red151\green0\blue255;\red197\green43\blue45;\red171\green82\blue27;\red51\green110\blue109;
+}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sl500
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+Pythons Execution Model\
+\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+"Everything is an object?"\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+When most people first hear that in Python, "everything is an object", it triggers flashbacks to languages like Java where everything the\'a0
+\f2\i \expnd0\expndtw0\kerning0
+user
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0writes is encapsulated in an object. Others assume this means that in the implementation of the Python interpreter, everything is implemented as objects. The first interpretation is wrong; the second is true but not particularly interesting (for our purposes). What the phrase actually refers to is the fact that all "things", be they values, classes, functions, object instances (obviously), and almost every other language construct is conceptually an object.\
+What does it mean for everything to be an object? It means all of the "things" mentioned above have all the properties we usually associate with objects (in the object oriented sense); types have member functions, functions have attributes, modules can be passed as arguments, etc. And it has important implications with regards to how assignment in Python works.\
+A feature of the Python interpreter that often confuses beginners is what happens when\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is called on a "variable" assigned to a user-defined object (I'll explain the quotes in a second). With built-in types, a proper value is usually printed, like when calling\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0on\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+strings
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+ints
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. For simple, user-defined classes, though, the interpreter spits out some odd looking string like:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+class
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf8 \expnd0\expndtw0\kerning0
+Foo
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(): 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+pass
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ Foo()\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(foo)\
+\cf5 \expnd0\expndtw0\kerning0
+<\cf2 \expnd0\expndtw0\kerning0
+__main__\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+Foo \cf7 \expnd0\expndtw0\kerning0
+object\cf2 \expnd0\expndtw0\kerning0
+ at \cf5 \expnd0\expndtw0\kerning0
+0xd3adb33f]]]]>\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is supposed to print the value of a "variable", right? So why is it printing that garbage?\
+To answer that, we need to understand what\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0actually represents in Python. Most other languages would call it a variable. Indeed, many Python articles would refer to\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0as a variable, but really only as a shorthand notation.\
+In languages like C,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0represents storage for "stuff". If we wrote\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf9 \cb6 \expnd0\expndtw0\kerning0
+int\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+42\cf2 \expnd0\expndtw0\kerning0
+;\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+it would be correct to say that the integer variable\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0contained the value\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+42
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. That is,\'a0
+\f2\i \expnd0\expndtw0\kerning0
+variables are a sort of container for values
+\f0\i0 \expnd0\expndtw0\kerning0
+.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+And now for something completely different...\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+In Python, this isn't the case. When we say:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ Foo()\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+it would be wrong to say that\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0"contained" a\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+Foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0object. Rather,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0
+\f2\i \expnd0\expndtw0\kerning0
+is a\'a0
+\f5\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+name
+\f2\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0with a\'a0
+\f5\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+binding
+\f2\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to the\'a0
+\f5\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+object
+\f2\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+created by
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+Foo()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. The portion of the right hand side of the equals sign creates an object. Assigning\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to that object merely says "I want to be able to refer to this object as\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+."\'a0
+\f2\b \expnd0\expndtw0\kerning0
+Instead of variables (in the classic sense), Python has\'a0
+\f4\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+names
+\f2\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f4\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+bindings
+\f0\b0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+.\
+So when we printed\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0earlier, what the interpreter was showing us was the address in memory where the object that\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is bound to is stored. This isn't as useless as it sounds. If you're in the interpreter and want to see if two names are bound to the same object, you can do a quick-and-dirty check by printing them and comparing the addresses. If they match, they're bound to the same object; if not, their bound to different objects. Of course, the idiomatic way to check if two names are bound to the same object is to use\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+is
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\
+If we continued our example and wrote\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ baz \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ foo\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+we should read this as "Bind the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+baz
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to the same object\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is bound to (whatever that may be)." It should be clear, then why the following happens\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf2 \cb6 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ baz\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+some_attribute\
+Traceback (most recent call last):\
+File \cf10 \expnd0\expndtw0\kerning0
+"<stdin>"\cf2 \expnd0\expndtw0\kerning0
+, line \cf5 \expnd0\expndtw0\kerning0
+1\cf2 \expnd0\expndtw0\kerning0
+, 
+\f4\b \cf11 \expnd0\expndtw0\kerning0
+in
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+<\cf2 \expnd0\expndtw0\kerning0
+module\cf5 \expnd0\expndtw0\kerning0
+]]]]>\cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+
+\f4\b \cf12 \expnd0\expndtw0\kerning0
+AttributeError
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+: \cf10 \expnd0\expndtw0\kerning0
+'Foo'\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+object\cf2 \expnd0\expndtw0\kerning0
+ has no attribute \cf10 \expnd0\expndtw0\kerning0
+'some_attribute'\cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+some_attribute \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf10 \expnd0\expndtw0\kerning0
+'set from foo'\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ baz\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+some_attribute\
+\pard\pardeftab720\sl360
+\cf10 \expnd0\expndtw0\kerning0
+'set from foo'\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+Changing the object in some way using\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+foo
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0will also be reflected in\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+baz
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+: they are both bound to the same underlying object.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+What's in a name...\
+\pard\pardeftab720\sl500\sa360
+
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+names
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in Python are not unlike names in the real world. If my wife calls me "Jeff", my dad calls me "Jeffrey", and my boss calls me "Idiot", it doesn't fundamentally change\'a0
+\f2\i \expnd0\expndtw0\kerning0
+me
+\f0\i0 \expnd0\expndtw0\kerning0
+. If my boss decides to call me "Captain Programming," great, but it still hasn't changed anything about me. It does mean, however, that if my wife kills "Jeff" (and who could blame her), "Captain Programming" is also dead. Likewise, in Python binding a name to an object doesn't change it. Changing some property of the object, however, will be reflected in all other names bound to that object.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Everything really\'a0
+\i \expnd0\expndtw0\kerning0
+is
+\i0 \expnd0\expndtw0\kerning0
+\'a0an object. I swear.\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+Here, a questions arises: How do we know that the thing on the right hand side of the equals sign will always be an object we can bind a name to? What about\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+or\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf10 \expnd0\expndtw0\kerning0
+"Hello World!"\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+Now is when "everything is an object" pays off. Anything you can (legally) place on the right hand side of the equals sign is (or creates) an object in Python. Both\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+10
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+Hello World
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0are objects. Don't believe me? Check for yourself\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(foo\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+__add__)\
+\cf5 \expnd0\expndtw0\kerning0
+<\cf2 \expnd0\expndtw0\kerning0
+method\cf5 \expnd0\expndtw0\kerning0
+-\cf2 \expnd0\expndtw0\kerning0
+wrapper \cf10 \expnd0\expndtw0\kerning0
+'__add__'\cf2 \expnd0\expndtw0\kerning0
+ of \cf7 \expnd0\expndtw0\kerning0
+int\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+object\cf2 \expnd0\expndtw0\kerning0
+ at \cf5 \expnd0\expndtw0\kerning0
+0x8502c0]]]]>\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+If\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+10
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0was actually just the number '10', it probably wouldn't have an\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+__add__
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0attribute (or any attributes at all).\
+In fact, we can see all the attributes\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+10
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0has using the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+dir()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0function:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+dir\cf2 \expnd0\expndtw0\kerning0
+(\cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+)\
+[\cf10 \expnd0\expndtw0\kerning0
+'__abs__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__add__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__and__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__class__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__cmp__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__coerce__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__delattr__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\pard\pardeftab720\sl360
+\cf10 \expnd0\expndtw0\kerning0
+'__div__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__divmod__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__doc__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__float__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__floordiv__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__format__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__getattribute__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__getnewargs__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__hash__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__hex__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__index__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__init__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__int__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__invert__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__long__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__lshift__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__mod__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__mul__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__neg__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__new__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__nonzero__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__oct__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__or__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__pos__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__pow__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__radd__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rand__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rdiv__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rdivmod__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__reduce__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__reduce_ex__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__repr__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rfloordiv__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rlshift__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__rmod__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rmul__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__ror__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rpow__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rrshift__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rshift__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__rsub__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rtruediv__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__rxor__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__setattr__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__sizeof__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__str__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'__sub__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__subclasshook__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__truediv__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__trunc__'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'__xor__'\cf2 \expnd0\expndtw0\kerning0
+, \
+\cf10 \expnd0\expndtw0\kerning0
+'bit_length'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'conjugate'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'denominator'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'imag'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'numerator'\cf2 \expnd0\expndtw0\kerning0
+, \cf10 \expnd0\expndtw0\kerning0
+'real'\cf2 \expnd0\expndtw0\kerning0
+]\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+With all those attributes and member functions, I think it's safe to say\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+10
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is an object.\
+Since everything in Python is essentially names bound to objects, we can do silly (but interesting) stuff like this:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+import
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf8 \expnd0\expndtw0\kerning0
+datetime
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+import
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf8 \expnd0\expndtw0\kerning0
+imp
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+now()\
+datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime(\cf5 \expnd0\expndtw0\kerning0
+2013\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+02\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+14\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+02\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+53\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+59\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+608842\cf2 \expnd0\expndtw0\kerning0
+)\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+class
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf8 \expnd0\expndtw0\kerning0
+PartyTime
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+():\'a0\'a0\'a0\'a0\'a0\'a0\'a0 \
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+__call__\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+*\cf2 \expnd0\expndtw0\kerning0
+args):\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 imp\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+reload(datetime)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime(\cf5 \expnd0\expndtw0\kerning0
+*\cf2 \expnd0\expndtw0\kerning0
+args)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+return
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ value\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 \
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+__getattr__\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+, value):\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+if
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ value \cf5 \expnd0\expndtw0\kerning0
+==\cf2 \expnd0\expndtw0\kerning0
+ \cf10 \expnd0\expndtw0\kerning0
+'now'\cf2 \expnd0\expndtw0\kerning0
+:\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+return
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+lambda
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+: 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(\cf10 \expnd0\expndtw0\kerning0
+'Party Time!'\cf2 \expnd0\expndtw0\kerning0
+)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+else
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+:\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 imp\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+reload(datetime)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+getattr\cf2 \expnd0\expndtw0\kerning0
+(datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime, value)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+return
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ value\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ PartyTime()\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+now() \
+Party Time!\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ today \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ datetime\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+datetime(\cf5 \expnd0\expndtw0\kerning0
+2013\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+2\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+14\cf2 \expnd0\expndtw0\kerning0
+)\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(today)\
+\cf5 \expnd0\expndtw0\kerning0
+2013-02-14\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+00\cf2 \expnd0\expndtw0\kerning0
+:\cf5 \expnd0\expndtw0\kerning0
+00\cf2 \expnd0\expndtw0\kerning0
+:\cf5 \expnd0\expndtw0\kerning0
+00\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(today\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+timestamp())\
+\cf5 \expnd0\expndtw0\kerning0
+1360818000.0\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime.datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is just a name (that happens to be bound to an object representing the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0class). We can rebind it to whatever we please. In the example above, we bind the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0attribute of the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0module to our new class,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+PartyTime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. Any call to the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime.datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0constructor returns a valid\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0object. In fact, the class is indistinguishable from the real\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime.datetime
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0class. Except, that is, for the fact that if you call
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+datetime.datetime.now()
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0it always prints out 'Party Time!'.\
+Obviously this is a silly example, but hopefully it gives you some insight into what is possible when you fully understand and make use of Python's execution model. At this point, though, we've only changed bindings associated with a name. What about changing the object itself?\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Two types of objects\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+It turns out Python has two flavors of objects:\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+mutable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+immutable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. The value of mutable objects can be changed after they are created. The value of immutable objects cannot be. A\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+list
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is a mutable object. You can create a list, append some values, and the list is updated in place. A\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+string
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is immutable. Once you create a string, you can't change its value.\
+I know what you're thinking: "Of course you can change the value of a string, I do it all the time in my code!" When you "change" a string, you're actually rebinding it to a newly created string object. The original object remains unchanged, even though its possible that nothing refers to it anymore.\
+See for yourself:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ a \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf10 \expnd0\expndtw0\kerning0
+'foo'\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ a\
+\pard\pardeftab720\sl360
+\cf10 \expnd0\expndtw0\kerning0
+'foo'\cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ b \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ a\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ a \cf5 \expnd0\expndtw0\kerning0
++=\cf2 \expnd0\expndtw0\kerning0
+ \cf10 \expnd0\expndtw0\kerning0
+'bar'\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ a\
+\pard\pardeftab720\sl360
+\cf10 \expnd0\expndtw0\kerning0
+'foobar'\cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ b\
+\pard\pardeftab720\sl360
+\cf10 \expnd0\expndtw0\kerning0
+'foo'\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+Even though we're using\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
++=
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and it\'a0
+\f2\i \expnd0\expndtw0\kerning0
+seems
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0that we're modifying the string, we really just get a new one containing the result of the change. This is why you may hear people say, "string concatenation is slow.". It's because concatenating strings must allocate memory for a new string and copy the contents, while appending to a list (in most cases) requires no allocation. Immutable objects are fundamentally expensive to "change", because doing so involves creating a copy. Changing mutable objects is cheap.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Immutable object weirdness\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+When I said the value of immutable objects can't change after they're created, it wasn't the whole truth. A number of containers in Python, such as\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tuple
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, are immutable. The value of a\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tuple
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0can't be changed after it is created. But the "value" of a tuple is conceptually just a sequence of names with unchangeable bindings to objects. The key thing to note is that the\'a0
+\f2\i \expnd0\expndtw0\kerning0
+bindings
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0are unchangeable, not the objects they are bound to.\
+This means the following is perfectly legal:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf5 \cb6 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+class
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf8 \expnd0\expndtw0\kerning0
+Foo
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+():\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+__init__\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+):\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 \cf7 \expnd0\expndtw0\kerning0
+self\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+__str__\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+):\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+return
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+str\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+value)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+__repr__\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf2 \expnd0\expndtw0\kerning0
+):\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+return
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+str\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+self\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+value)\
+\cf5 \expnd0\expndtw0\kerning0
+...\cf2 \expnd0\expndtw0\kerning0
+ \
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ f \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ Foo()\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(f)\
+\cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo_tuple \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ (f, f)\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(foo_tuple)\
+(\cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+)\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ foo_tuple[\cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+] \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+100\cf2 \expnd0\expndtw0\kerning0
+\
+Traceback (most recent call last):\
+File \cf10 \expnd0\expndtw0\kerning0
+"<stdin>"\cf2 \expnd0\expndtw0\kerning0
+, line \cf5 \expnd0\expndtw0\kerning0
+1\cf2 \expnd0\expndtw0\kerning0
+, 
+\f4\b \cf11 \expnd0\expndtw0\kerning0
+in
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+<\cf2 \expnd0\expndtw0\kerning0
+module\cf5 \expnd0\expndtw0\kerning0
+]]]]>\cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+
+\f4\b \cf12 \expnd0\expndtw0\kerning0
+TypeError
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+: \cf10 \expnd0\expndtw0\kerning0
+'tuple'\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+object\cf2 \expnd0\expndtw0\kerning0
+ does 
+\f4\b \cf11 \expnd0\expndtw0\kerning0
+not
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ support item assignment\
+\pard\pardeftab720\sl360
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ f\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+999\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(f)\
+\cf5 \expnd0\expndtw0\kerning0
+999\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(foo_tuple)\
+(\cf5 \expnd0\expndtw0\kerning0
+999\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+999\cf2 \expnd0\expndtw0\kerning0
+)\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+When we try to change an element of the tuple directly, we get a\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+TypeError
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0telling us that (once created),\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tuples
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+can't be assigned to. But changing the underlying object has the effect of "changing" the value of the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tuple
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. This is a subtle point, but nonetheless important: the "value" of an immutable object\'a0
+\f2\i \expnd0\expndtw0\kerning0
+can't
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0change, but it's constituent objects
+\f2\i \expnd0\expndtw0\kerning0
+can
+\f0\i0 \expnd0\expndtw0\kerning0
+.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Function calls\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+If variables are just\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+names
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0bound to objects, what happens when we pass them as arguments to a function? The truth is, we aren't really passing all that much. Take a look at this code:\
+\pard\pardeftab720\sl360
+
+\f4\b\fs26 \cf7 \cb6 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+add_to_tree\cf2 \expnd0\expndtw0\kerning0
+(root, value_string):\
+\'a0\'a0\'a0 
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+"""Given a string of characters `value_string`, create or update a
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\sl360
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 series of dictionaries where the value at each level is a dictionary of
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 the characters that have been seen following the current character.
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 Example:
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> my_string = 'abc'
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> tree = \{\}
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> add_to_tree(tree, my_string)
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> print(tree['a']['b'])
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 \{'c': \{\}\}
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> add_to_tree(tree, 'abd')
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> print(tree['a']['b'])
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 \{'c': \{\}, 'd': \{\}\} 
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 >>> print(tree['a']['d'])
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 KeyError 'd'
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf10 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0 """
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+for
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ character 
+\f4\b \cf11 \expnd0\expndtw0\kerning0
+in
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ value_string:\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 root \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ root\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+setdefault(character, \{\})\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+We're essentially creating an auto-vivifying dictionary that operates like a trie. Notice that we change the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+parameter in the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+for
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0loop. And yet after the function call completes,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tree
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is still the same dictionary with some updates. It is\'a0
+\f2\i \expnd0\expndtw0\kerning0
+not
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0the last value of\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in the function call. So in one sense\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tree
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is being updated; in another sense it's not.\
+To make sense of this, consider what the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0parameter actually is: a\'a0
+\f2\i \expnd0\expndtw0\kerning0
+new
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0binding to the object refereed to by the name passed in as the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0parameter. In the case of our example,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is a name initially bound to the same object as\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tree
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. It is\'a0
+\f2\i \expnd0\expndtw0\kerning0
+not
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tree
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0itself, which explains why changing\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to a new dictionary in the function leaves
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+tree
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0unchanged. As you'll recall, assigning\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root.setdefault(character, \{\})
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0merely rebinds\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to the object created by the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+root.setdefault(character, \{\})
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0statement.\
+Here's another, more straightforward, example:\
+\pard\pardeftab720\sl360
+
+\f4\b\fs26 \cf7 \cb6 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+list_changer\cf2 \expnd0\expndtw0\kerning0
+(input_list):\
+\'a0\'a0\'a0 input_list[\cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+] \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+\
+\
+\'a0\'a0\'a0 input_list \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+range\cf2 \expnd0\expndtw0\kerning0
+(\cf5 \expnd0\expndtw0\kerning0
+1\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+)\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(input_list)\
+\'a0\'a0\'a0 input_list[\cf5 \expnd0\expndtw0\kerning0
+0\cf2 \expnd0\expndtw0\kerning0
+] \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(input_list)\
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ test_list \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ [\cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+]\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ \'a0\'a0\'a0\'a0\'a0\
+[\cf5 \expnd0\expndtw0\kerning0
+1\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+2\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+3\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+4\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+6\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+7\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+8\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+9\cf2 \expnd0\expndtw0\kerning0
+]\
+[\cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+2\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+3\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+4\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+6\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+7\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+8\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+9\cf2 \expnd0\expndtw0\kerning0
+]\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ test_list\
+[\cf5 \expnd0\expndtw0\kerning0
+10\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+, \cf5 \expnd0\expndtw0\kerning0
+5\cf2 \expnd0\expndtw0\kerning0
+]\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+Our first statement\'a0
+\f2\i \expnd0\expndtw0\kerning0
+does
+\f0\i0 \expnd0\expndtw0\kerning0
+\'a0change the value of the underlying list (as we can see in the last line printed). However, once we rebind the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+input_list
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0by saying\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+input_list = range(1, 10)
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+,\'a0
+\f2\b \expnd0\expndtw0\kerning0
+we're now referring to a completely different object
+\f0\b0 \expnd0\expndtw0\kerning0
+. We basically said "bind the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+input_list
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0to this new list." After that line, we have no way of referring to the original\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+input_list
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0parameter again.\
+By now, you should have a clear understanding of how binding a name works. There's just one more item to take care of.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Blocks and Scope\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+The concepts of\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+names
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+,\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+bindings
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+objects
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0should be quite familiar at this point. What we haven't covered, though, is how the interpreter "finds" a name. To see what I mean, consider the following:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf2 \cb6 \expnd0\expndtw0\kerning0
+GLOBAL_CONSTANT \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+42\cf2 \expnd0\expndtw0\kerning0
+\
+\
+
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+print_some_weird_calculation\cf2 \expnd0\expndtw0\kerning0
+(value):\
+\'a0\'a0\'a0 number_of_digits \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+len\cf2 \expnd0\expndtw0\kerning0
+(\cf7 \expnd0\expndtw0\kerning0
+str\cf2 \expnd0\expndtw0\kerning0
+(value))\
+\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+print_formatted_calculation\cf2 \expnd0\expndtw0\kerning0
+(result):\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(\cf10 \expnd0\expndtw0\kerning0
+'\{value\} * \{constant\} = \{result\}'\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+format(value\cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+value,\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0 constant\cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+GLOBAL_CONSTANT, result\cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+result))\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(\cf10 \expnd0\expndtw0\kerning0
+'\{\}\'a0\'a0 \{\}'\cf5 \expnd0\expndtw0\kerning0
+.\cf2 \expnd0\expndtw0\kerning0
+format(\cf10 \expnd0\expndtw0\kerning0
+'^'\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+*\cf2 \expnd0\expndtw0\kerning0
+ number_of_digits, \cf10 \expnd0\expndtw0\kerning0
+'++'\cf2 \expnd0\expndtw0\kerning0
+))\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(\cf10 \expnd0\expndtw0\kerning0
+'
+\f4\b \cf13 \expnd0\expndtw0\kerning0
+\\n
+\f3\b0 \cf10 \expnd0\expndtw0\kerning0
+Key: ^ points to your number, + points to constant'\cf2 \expnd0\expndtw0\kerning0
+)\
+\
+\'a0\'a0\'a0 print_formatted_calculation(value \cf5 \expnd0\expndtw0\kerning0
+*\cf2 \expnd0\expndtw0\kerning0
+ GLOBAL_CONSTANT)\
+\
+\cf5 \expnd0\expndtw0\kerning0
+>>>\cf2 \expnd0\expndtw0\kerning0
+ print_some_weird_calculation(\cf5 \expnd0\expndtw0\kerning0
+123\cf2 \expnd0\expndtw0\kerning0
+)\
+\cf5 \expnd0\expndtw0\kerning0
+123\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+*\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+42\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+5166\cf2 \expnd0\expndtw0\kerning0
+\
+\cf5 \expnd0\expndtw0\kerning0
+^^^\cf2 \expnd0\expndtw0\kerning0
+\'a0\'a0 \cf5 \expnd0\expndtw0\kerning0
+++\cf2 \expnd0\expndtw0\kerning0
+\
+\
+Key: \cf5 \expnd0\expndtw0\kerning0
+^\cf2 \expnd0\expndtw0\kerning0
+ points to your number, \cf5 \expnd0\expndtw0\kerning0
++\cf2 \expnd0\expndtw0\kerning0
+ points to constant\
+\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+This is a contrived example, but a couple of things should jump out at you. First, how does the
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0function have access to\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+number_of_digits
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0even though they were never passed as arguments? Second, how do both functions seem to have access to\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+GLOBAL_CONSTANT
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+?\
+The answer is all about\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. In Python, when a name is bound to an object, that name is only usable within the name's\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. The\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0of a name is determined by the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in which it was created. A\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0is just a "block" of Python code that is executed as a single unit. The three most common types of blocks are modules, class definitions, and the bodies of functions. So the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0of a name is the innermost\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in which it's defined.\
+Let's now return to the original question: how does the interpreter "find" what a name is bound to (or if it's even a valid name at all)? It begins by checking the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0of the innermost\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. Then it checks the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0that contained the innermost\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, then the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0that contained that, and so on.\
+In the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0function, we reference\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+. This is resolved by first checking the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+of the innermost\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, which in this case is the body of the function itself. When it doesn't find\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0defined there, it checks the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0that\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0was defined in. In our case, that's the body of the
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_some_weird_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0function. Here it does find the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, and so it uses that binding and stops looking. The same is true for\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+GLOBAL_CONSTANT
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, it just needs to look an extra level higher: the module (or script) level. Anything defined at this level is considered a\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+global
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0name. These are accessible from anywhere.\
+A few quick things to note. A name's\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0extends to any blocks contained in the block where the name was defined,\'a0
+\f2\i \expnd0\expndtw0\kerning0
+unless the name is rebound in one of those blocks
+\f0\i0 \expnd0\expndtw0\kerning0
+. If\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0had the line\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value = 3
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, then the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0of the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_some_weird_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0would only be the body of that function. It's\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+scope
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0would not include\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, since that\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+block
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0rebound the name.\
+\pard\pardeftab720\sl520\sa480
+
+\f1\fs48 \cf0 \expnd0\expndtw0\kerning0
+Use this power wisely...\
+\pard\pardeftab720\sl500\sa360
+
+\f0\fs36 \cf2 \expnd0\expndtw0\kerning0
+There are two keywords that can be used to tell the interpreter to\'a0
+\f2\b \expnd0\expndtw0\kerning0
+reuse a preexisting binding
+\f0\b0 \expnd0\expndtw0\kerning0
+. Every other time we bind a name, it binds that name to a new object,\'a0
+\f2\i \expnd0\expndtw0\kerning0
+but only in the current scope
+\f0\i0 \expnd0\expndtw0\kerning0
+. In the example above, if we rebound
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, it would have no affect on the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+value
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_some_weird_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, which is\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+print_formatted_calculation
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+'s enclosing scope. With the following two keywords, we can actually affect the bindings outside our local scope.\
+
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+global my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0tells the interpreter to use the binding of the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in the top-most (or "global" scope). Putting\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+global my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in a code block is a way of saying, "copy the binding of this global variable, or if you don't find it, create the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0in the global scope." Similarly, the\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+nonlocal my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+statement instructs the interpreter to use the binding of the name\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0defined in the nearest\'a0
+\f2\i \expnd0\expndtw0\kerning0
+enclosing
+\f0\i0 \expnd0\expndtw0\kerning0
+scope. This is a way to rebind a name not defined in either the local or global scope. Without\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+nonlocal
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, we would only be able to alter bindings in the local scope or the global scope. Unlike\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+global my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0however, if we use
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+nonlocal my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0then\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+my_variable
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0must already exist; it won't be created if it's not found.\
+To see this in action, let's write a quick example:\
+\pard\pardeftab720\sl360
+
+\f3\fs26 \cf2 \cb6 \expnd0\expndtw0\kerning0
+GLOBAL_CONSTANT \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+42\cf2 \expnd0\expndtw0\kerning0
+\
+
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(GLOBAL_CONSTANT)\
+
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+outer_scope_function\cf2 \expnd0\expndtw0\kerning0
+():\
+\'a0\'a0\'a0 some_value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+hex\cf2 \expnd0\expndtw0\kerning0
+(\cf5 \expnd0\expndtw0\kerning0
+0x0\cf2 \expnd0\expndtw0\kerning0
+)\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(some_value)\
+\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+def
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ \cf8 \expnd0\expndtw0\kerning0
+inner_scope_function\cf2 \expnd0\expndtw0\kerning0
+():\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 nonlocal some_value\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0 some_value \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf7 \expnd0\expndtw0\kerning0
+hex\cf2 \expnd0\expndtw0\kerning0
+(\cf5 \expnd0\expndtw0\kerning0
+0xDEADBEEF\cf2 \expnd0\expndtw0\kerning0
+)\
+\
+\'a0\'a0\'a0 inner_scope_function()\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(some_value)\
+\'a0\'a0\'a0 
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+global
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+ GLOBAL_CONSTANT\
+\'a0\'a0\'a0 GLOBAL_CONSTANT \cf5 \expnd0\expndtw0\kerning0
+=\cf2 \expnd0\expndtw0\kerning0
+ \cf5 \expnd0\expndtw0\kerning0
+31337\cf2 \expnd0\expndtw0\kerning0
+\
+\
+outer_scope_function()\
+
+\f4\b \cf7 \expnd0\expndtw0\kerning0
+print
+\f3\b0 \cf2 \expnd0\expndtw0\kerning0
+(GLOBAL_CONSTANT)\
+\
+\pard\pardeftab720\sl360
+
+\f5\i \cf14 \expnd0\expndtw0\kerning0
+# Output: 
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf14 \expnd0\expndtw0\kerning0
+# 42
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf14 \expnd0\expndtw0\kerning0
+# 0x0
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf14 \expnd0\expndtw0\kerning0
+# 0xdeadbeef
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+
+\f5\i \cf14 \expnd0\expndtw0\kerning0
+# 31337
+\f3\i0 \cf2 \expnd0\expndtw0\kerning0
+\
+\
+\pard\pardeftab720\sl500
+
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\
+By making use of\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+global
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+\'a0and\'a0
+\f3\fs32 \cf3 \cb4 \expnd0\expndtw0\kerning0
+nonlocal
+\f0\fs36 \cf2 \cb1 \expnd0\expndtw0\kerning0
+, we're able to use and change the existing binding of a name rather than merely assigning the name a new binding and losing the old one.\
+\
+\'97\'97\'97\'97\'97\'97\'97\'97 X \'97\'97\'97\'97\'97\'97\'97\'97 X \'97\'97\'97\'97\'97\'97\'97\'97\'a0\
+}
